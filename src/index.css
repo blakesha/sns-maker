@@ -256,6 +256,8 @@ kbd { font: 11px ui-monospace, monospace; opacity: 0.6; margin-left: 4px; }
 .tile-card { background: #fbf4e3; border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .tile-card label.small { display: flex; align-items: center; gap: 4px; font-size: 14px; }
 .tile-card label.small input { padding: 3px 6px; }
+.tile-actions { flex-wrap: wrap; }
+.tile-actions button.mini { white-space: normal; flex: 1 1 auto; }
 .tile-name { font: 700 15px var(--display); padding: 3px 6px; }
 .tile-preview { aspect-ratio: 1; display: grid; place-items: center; background: #efe3c8; border-radius: 6px; padding: 8px; }
 .tile-shape {

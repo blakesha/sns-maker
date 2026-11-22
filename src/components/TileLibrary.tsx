@@ -269,7 +269,7 @@ function TileCard({ tile, onEdit, onImage, onDelete }: {
           <label className="small">H<input type="number" min={1} max={20} value={tile.rows} onChange={(e) => onEdit({ rows: Math.max(1, +e.target.value) })} /></label>
         </div>
       )}
-      <div className="row">
+      <div className="row tile-actions">
         <button className="mini" onClick={() => ref.current?.click()}>{tile.image ? 'Replace image' : 'Add image'}</button>
         {tile.image && <button className="mini" onClick={() => onEdit({ image: undefined })}>Remove image</button>}
         <span className="spacer" />
