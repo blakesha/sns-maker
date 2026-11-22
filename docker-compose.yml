@@ -1,0 +1,33 @@
+services:
+  # Tailscale sidecar: joins the tailnet as "sns-maker" and proxies HTTPS (443) to the app.
+  # Needs TS_AUTHKEY in .env. Remove this service if you only want http://localhost:8080.
+  tailscale:
+    image: docker.io/tailscale/tailscale:latest
+    container_name: sns_tailscale
+    hostname: sns-maker
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_USERSPACE=true
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+      - ./tailscale:/config:ro,z
+    depends_on:
+      - web
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: sns_maker
+    ports:
+      - "8765:8080"
+    volumes:
+      - ./data:/data:z
+      - ./local-assets:/local-assets:z
+    restart: unless-stopped
+
+volumes:
+  tailscale_state:

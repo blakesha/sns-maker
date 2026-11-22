@@ -5,3 +5,4 @@ dist
 SwordSorceryMapEditor_Data/
 .venv/
 *:Zone.Identifier
+.env

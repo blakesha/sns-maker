@@ -38,3 +38,15 @@ quest's target, warns about tiles from other boxes, and the quest sheet prints w
 - **Quest sheet / Campaign book**: printable layout with the map, legend and map key. Use *Print → Save as PDF*.
 - **Storage**: autosaves to browser localStorage. Use *Export JSON* / *Import* to back up or share campaigns.
 
+
+## Container (Podman / Docker)
+
+```bash
+cp .env.example .env          # set TS_AUTHKEY only if you want the Tailscale sidecar
+podman compose up -d --build  # http://localhost:8765
+```
+
+`server.mjs` serves the built app plus the same storage API as the dev server. `./data` and `./local-assets` are bind-mounted,
+so campaigns, play state and your tile library persist on the host and extracted game art never goes into the image.
+With `TS_AUTHKEY` set, the `tailscale` sidecar serves the app over HTTPS on your tailnet as `sns-maker`
+(delete that service from `docker-compose.yml` if you don't want it).
