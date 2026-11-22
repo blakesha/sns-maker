@@ -1,0 +1,9 @@
+{
+  "_help": "Which tile numbers belong to which release. Ranges like \"1-19\" or lists like \"20,21,25-30\". Leave empty if unknown. Release ids: is = Immortal Souls, ap = Arcane Portal, df = Darkness Falls, vl = Vastaryous' Lair (Immortal Souls saga); ac = Ancient Chronicles, nt = Northwind Tales; mota = Myths of the Arena; al = Abyssal Legends; custom. Then re-run: .venv/bin/python scripts/extract_quest_editor.py",
+  "is": "1-19",
+  "ap": "",
+  "df": "",
+  "vl": "",
+  "mota": "",
+  "custom": ""
+}

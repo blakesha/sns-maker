@@ -1,0 +1,7 @@
+node_modules
+dist
+*.local
+# extracted game assets: personal use only, never commit
+SwordSorceryMapEditor_Data/
+.venv/
+*:Zone.Identifier
