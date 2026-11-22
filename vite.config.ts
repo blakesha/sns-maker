@@ -18,7 +18,7 @@ function localStore(): Plugin {
     campaigns: 'data/campaigns.json',
     play: 'data/play.json',
   }
-  const PACKS = ['sns-quest-editor-tiles.json', 'sns-quest-editor-markers.json', 'sns-quest-editor-art.json']
+  const PACKS = ['sns-quest-editor-tiles.json', 'sns-quest-editor-markers.json', 'sns-quest-editor-art.json', 'sns-companion-cards.json']
   const MAX = 300 * 1024 * 1024
 
   return {

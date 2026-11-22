@@ -29,6 +29,11 @@ const CAT_COLOR: Record<string, string> = {
   inventory: '#c9a878', companions: '#5fb0a6', special: '#9a9a9a',
 }
 
+/** Card art extracted from the official companion app (see scripts/extract_companion_cards.py), keyed by catalog id. */
+function cardArt(ui: Record<string, string>, id: string, flipped?: boolean) {
+  return (flipped && ui[`card:${id}:back`]) || ui[`card:${id}`]
+}
+
 function getCard(g: Game | undefined, h: Hero | undefined, loc: Loc): Card | null {
   if (!g) return null
   switch (loc.k) {
@@ -190,15 +195,19 @@ function TokChip({ x }: { x: CardTok }) {
 }
 
 function CardTile({ card, loc, extra }: { card: Card; loc: Loc; extra?: string }) {
-  const { S, setSheet } = usePlay()
+  const { S, ui, setSheet } = usePlay()
+  const art = cardArt(ui, card.id, card.flipped)
   return (
-    <button className="ptile" style={{ borderLeftColor: CAT_COLOR[card.cat] }} onClick={() => setSheet({ t: 'card', loc })}>
-      <b>
-        {nameOf(S, card.cat, card.id)}
-        {card.counters > 0 && <span className="pbadge">{card.counters}</span>}
-      </b>
-      {(card.flipped || extra) && <small>{[card.flipped && 'flipped', extra].filter(Boolean).join(' · ')}</small>}
-      {card.tokens.length > 0 && <span className="pchips">{card.tokens.map((t, i) => <TokChip key={i} x={t} />)}</span>}
+    <button className={`ptile${art ? ' withart' : ''}`} style={{ borderLeftColor: CAT_COLOR[card.cat] }} onClick={() => setSheet({ t: 'card', loc })}>
+      {art && <img className="ptile-art" src={art} alt="" />}
+      <div className="ptile-body">
+        <b>
+          {nameOf(S, card.cat, card.id)}
+          {card.counters > 0 && <span className="pbadge">{card.counters}</span>}
+        </b>
+        {(card.flipped || extra) && <small>{[card.flipped && 'flipped', extra].filter(Boolean).join(' · ')}</small>}
+        {card.tokens.length > 0 && <span className="pchips">{card.tokens.map((t, i) => <TokChip key={i} x={t} />)}</span>}
+      </div>
     </button>
   )
 }
@@ -370,15 +379,21 @@ function GameView() {
       </>}>
         {g.chars.length === 0 ? <div className="pempty">No heroes yet.</div> : (
           <div className="plist">
-            {g.chars.map((c, i) => (
-              <div key={i} className={c.alive ? '' : 'fallen'}>
-                <button className={`ptile hero ${c.turn ? 'turn' : ''}`} onClick={() => go({ v: 'hero', gid: g.id, ci: i })}>
-                  <b>{c.turn && '▶ '}{nameOf(S, 'characters', c.card.id)}</b>
-                  <small>{c.alive ? '' : 'fallen · '}damage {c.dmg} · shield {c.shield} · gold {c.gold} · rank {c.rank}</small>
-                  {c.tokens.length > 0 && <span className="pchips">{c.tokens.map((t, j) => <TokChip key={j} x={t} />)}</span>}
-                </button>
-              </div>
-            ))}
+            {g.chars.map((c, i) => {
+              const art = cardArt(ui, c.card.id)
+              return (
+                <div key={i} className={c.alive ? '' : 'fallen'}>
+                  <button className={`ptile hero${art ? ' withart' : ''} ${c.turn ? 'turn' : ''}`} onClick={() => go({ v: 'hero', gid: g.id, ci: i })}>
+                    {art && <img className="ptile-art" src={art} alt="" />}
+                    <div className="ptile-body">
+                      <b>{c.turn && '▶ '}{nameOf(S, 'characters', c.card.id)}</b>
+                      <small>{c.alive ? '' : 'fallen · '}damage {c.dmg} · shield {c.shield} · gold {c.gold} · rank {c.rank}</small>
+                      {c.tokens.length > 0 && <span className="pchips">{c.tokens.map((t, j) => <TokChip key={j} x={t} />)}</span>}
+                    </div>
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </Section>
@@ -638,14 +653,16 @@ function Picker({ slot, title, cats }: { slot: string; title: string; cats: stri
 }
 
 function CardSheet({ loc }: { loc: Loc }) {
-  const { S, game, hero, edit, setSheet, toast } = usePlay()
+  const { S, ui, game, hero, edit, setSheet, toast } = usePlay()
   const k = getCard(game, hero, loc)
   if (!k) return null
+  const art = cardArt(ui, k.id, k.flipped)
   const editCard = (fn: (c: Card) => void) => edit((d, h) => { const c = getCard(d, h, loc); if (c) fn(c) })
   return (
     <>
       <h3>{nameOf(S, k.cat, k.id)}</h3>
       <p className="pmute" style={{ margin: '-6px 0 10px' }}>{CATN[k.cat]}{k.flipped && ' · flipped'}</p>
+      {art && <img className="card-art" src={art} alt="" onClick={() => setSheet({ t: 'enemy', src: art })} />}
       <div className="row wrap" style={{ marginBottom: 10 }}>
         {hasBack(k.cat, k.id) && <button className="pbtn" onClick={() => editCard((c) => void (c.flipped = !c.flipped))}>Flip card</button>}
         <button className="pbtn" onClick={() => setSheet({ t: 'renameCard', loc })}>Rename</button>

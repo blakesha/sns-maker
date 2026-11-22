@@ -156,10 +156,21 @@ export function TileLibraryProvider({ children }: { children: ReactNode }) {
   const deleted = useRef(new Set<string>())
   const synced = useRef(false)
 
+  // Multiple art packs (e.g. Quest Editor UI + companion card art) can each hand in their own slice,
+  // so a later pack extends what's already loaded instead of replacing it.
   const setGameArt = useCallback((u: Record<string, string>, e: EnemyArt[]) => {
-    setUi(u)
-    setEnemies(e)
-    gamePut([{ id: 'ui', data: u }, { id: 'enemies', data: e }]).catch((err) => alert(`Could not save game art: ${err}`))
+    setUi((cur) => {
+      const merged = { ...cur, ...u }
+      gamePut([{ id: 'ui', data: merged }]).catch((err) => alert(`Could not save game art: ${err}`))
+      return merged
+    })
+    setEnemies((cur) => {
+      const m = new Map(cur.map((x) => [x.id, x]))
+      e.forEach((x) => m.set(x.id, x))
+      const merged = [...m.values()]
+      gamePut([{ id: 'enemies', data: merged }]).catch((err) => alert(`Could not save game art: ${err}`))
+      return merged
+    })
   }, [])
 
   const clearGameArt = useCallback(() => {

@@ -398,6 +398,10 @@ kbd { font: 11px ui-monospace, monospace; opacity: 0.6; margin-left: 4px; }
 .ptile.empty { border-style: dashed; border-left-width: 1px; color: var(--pmute); justify-content: center; align-items: center; background: transparent; }
 .ptile.hero, .ptile.game { border-left-color: var(--pgold); }
 .ptile.turn { box-shadow: 0 0 0 2px var(--pgold) inset; }
+.ptile.withart { flex-direction: row; align-items: center; }
+.ptile-art { width: 34px; height: 52px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.ptile-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.card-art { display: block; width: 100%; max-width: 220px; margin: 0 auto 12px; border-radius: 10px; cursor: pointer; }
 .fallen .ptile.hero, .fallen > .pcard { opacity: 0.55; }
 .pchips { display: flex; flex-wrap: wrap; gap: 6px; }
 .pchip { background: #372d24; border: 1px solid var(--pline); border-radius: 999px; padding: 3px 9px; font-size: 13px; }
