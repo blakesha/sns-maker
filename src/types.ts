@@ -40,8 +40,10 @@ export interface Token {
   note: string
   /** TokenArt id: draw this image instead of the generic marker */
   art?: string
-  /** quarter turns clockwise (art tokens) */
+  /** quarter turns clockwise (art tokens); legacy, superseded by `angle` */
   rot?: number
+  /** degrees clockwise, any multiple of 45 (art tokens) */
+  angle?: number
 }
 
 /** An enemy from the user's own copy of the game: card art per rank colour, optional round portrait */

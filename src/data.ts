@@ -196,3 +196,6 @@ export function sampleCampaign(): Campaign {
   q.map = m
   return c
 }
+
+/** Token rotation in degrees clockwise (falls back to the legacy quarter-turn `rot`) */
+export const tokenAngle = (t: { angle?: number; rot?: number }) => t.angle ?? (t.rot ?? 0) * 90

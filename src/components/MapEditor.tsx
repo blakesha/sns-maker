@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { EdgeType, MapData, PlacedTile, TerrainId, TileDef, Token, TokenKind } from '../types'
-import { TERRAINS, TOKENS, footprint, newMap, resizeMap, tokenByKind, uid, worldJoints } from '../data'
+import { TERRAINS, TOKENS, footprint, newMap, resizeMap, tokenAngle, tokenByKind, uid, worldJoints } from '../data'
 import { CELL, MapSvg, TileGraphic } from './MapSvg'
 import { useTileLibrary } from '../tiles'
 import { releaseById, targetLabel, tileAllowed, type Target } from '../releases'
@@ -16,7 +16,7 @@ const TOOLS: { id: Tool; name: string; key: string; hint: string }[] = [
   { id: 'rect', name: 'Room', key: 'R', hint: 'Drag a rectangle to paint terrain. Hold Shift to also wall it in.' },
   { id: 'fill', name: 'Fill', key: 'G', hint: 'Flood-fill a connected region of the same terrain.' },
   { id: 'edge', name: 'Walls', key: 'W', hint: 'Click or drag along grid lines to place walls / doors.' },
-  { id: 'token', name: 'Tokens', key: 'T', hint: 'Click a cell to place the chosen token.' },
+  { id: 'token', name: 'Tokens', key: 'T', hint: 'Click to place the chosen token anywhere (Alt snaps to the grid). Q / Shift+Q rotates markers in 45° steps.' },
   { id: 'erase', name: 'Erase', key: 'E', hint: 'Drag to clear terrain, tokens and walls from cells.' },
 ]
 
@@ -247,7 +247,7 @@ export function MapEditor({ map, name, onChange, onOpenLibrary, target }: Props)
   rotateTileRef.current = rotateTile
   const rotateToken = (id: string, dir: 1 | -1) => {
     const t = mapRef.current.tokens.find((x) => x.id === id)
-    if (t?.art) updateToken(id, { rot: ((t.rot ?? 0) + dir + 4) % 4 })
+    if (t?.art) updateToken(id, { angle: (tokenAngle(t) + dir * 45 + 360) % 360, rot: undefined })
   }
   const rotateTokenRef = useRef(rotateToken)
   rotateTokenRef.current = rotateToken
@@ -389,11 +389,13 @@ export function MapEditor({ map, name, onChange, onOpenLibrary, target }: Props)
     const f = footprint(def, pendingRot)
     return placeTile(def, pendingRot, fx - f.w / 2, fy - f.h / 2, mapRef.current.tiles, lib.byId, altDown.current)
   }
-  /** Door markers snap onto tile connection points; other markers to half squares */
-  const markerPos = (kind: TokenKind, fx: number, fy: number, free: boolean) => {
-    const j = !free && kind === 'door' ? nearestJoint(fx, fy, mapRef.current.tiles, lib.byId) : null
-    if (j) return { x: j.x - 0.5, y: j.y - 0.5, rot: j.rot }
-    return { x: Math.round(fx * 2) / 2 - 0.5, y: Math.round(fy * 2) / 2 - 0.5 }
+  /** Tokens are placed freely; hold Alt to snap (doors onto tile connection points, others to half squares) */
+  const markerPos = (kind: TokenKind, fx: number, fy: number, snap: boolean) => {
+    const j = snap && kind === 'door' ? nearestJoint(fx, fy, mapRef.current.tiles, lib.byId) : null
+    if (j) return { x: j.x - 0.5, y: j.y - 0.5, angle: j.rot * 90 }
+    if (snap) return { x: Math.round(fx * 2) / 2 - 0.5, y: Math.round(fy * 2) / 2 - 0.5 }
+    const r = (v: number) => Math.round(v * 100) / 100
+    return { x: r(fx - 0.5), y: r(fy - 0.5) }
   }
 
   const applyStroke = (p: ReturnType<typeof toMap>) => {
@@ -447,14 +449,13 @@ export function MapEditor({ map, name, onChange, onOpenLibrary, target }: Props)
       if (!p.inside) return
       const existingEvents = mapRef.current.tokens.filter((t) => t.kind === 'event').length
       const art = tokenArtId ? lib.artById[tokenArtId] : undefined
-      const mp = art ? markerPos(art.kind, p.fx, p.fy, e.altKey) : null
+      const mp = markerPos(art?.kind ?? tokenKind, p.fx, p.fy, e.altKey)
       const t: Token = {
         id: uid(),
         kind: art?.kind ?? tokenKind,
-        // art markers snap to half squares (doors to tile connection points)
-        x: mp ? mp.x : p.x,
-        y: mp ? mp.y : p.y,
-        ...(art ? { art: art.id, rot: mp?.rot ?? 0 } : {}),
+        x: mp.x,
+        y: mp.y,
+        ...(art ? { art: art.id, angle: mp.angle ?? 0 } : {}),
         label: art ? '' : tokenKind === 'event' ? String(existingEvents + 1) : tokenKind === 'label' ? 'Area' : '',
         note: '',
       }
@@ -498,15 +499,13 @@ export function MapEditor({ map, name, onChange, onOpenLibrary, target }: Props)
       const [ox, oy] = drag.current.offset ?? [0, 0]
       const t = mapRef.current.tokens.find((t) => t.id === drag.current.tokenId)
       if (!t) return
-      if (t.art) {
-        const mp = markerPos(t.kind, p.fx - ox, p.fy - oy, e.altKey)
-        const patch = { x: Math.max(-0.5, mp.x), y: Math.max(-0.5, mp.y), ...(mp.rot != null ? { rot: mp.rot } : {}) }
-        if (t.x !== patch.x || t.y !== patch.y || (patch.rot != null && patch.rot !== t.rot)) updateToken(t.id, patch, false)
-        return
+      const mp = markerPos(t.kind, p.fx - ox, p.fy - oy, e.altKey)
+      const patch = {
+        x: Math.max(-0.5, Math.min(map.width - 0.5, mp.x)),
+        y: Math.max(-0.5, Math.min(map.height - 0.5, mp.y)),
+        ...(t.art && mp.angle != null ? { angle: mp.angle, rot: undefined } : {}),
       }
-      const nx = Math.max(0, Math.min(map.width - 1, Math.round(p.fx - 0.5 - ox)))
-      const ny = Math.max(0, Math.min(map.height - 1, Math.round(p.fy - 0.5 - oy)))
-      if (t.x !== nx || t.y !== ny) updateToken(t.id, { x: nx, y: ny }, false)
+      if (t.x !== patch.x || t.y !== patch.y || (patch.angle != null && patch.angle !== tokenAngle(t))) updateToken(t.id, patch, false)
       return
     }
     if (tool === 'rect' && rectDrag) {
@@ -713,7 +712,7 @@ export function MapEditor({ map, name, onChange, onOpenLibrary, target }: Props)
                     </button>
                   ))}
                 </div>
-                <p className="hint">{tokenArtId ? lib.artById[tokenArtId]?.name : 'Pick a marker'} · doors snap onto tile connections (Alt to place freely) · Q rotates</p>
+                <p className="hint">{tokenArtId ? lib.artById[tokenArtId]?.name : 'Pick a marker'} · placed freely, Alt snaps (doors onto tile connections) · Q rotates 45°</p>
               </>
             )}
             <h4>{lib.art.length > 0 ? 'Generic tokens' : 'Token'}</h4>

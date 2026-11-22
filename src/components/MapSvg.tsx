@@ -1,9 +1,13 @@
 import { forwardRef, type PointerEventHandler, type ReactNode } from 'react'
 import type { EdgeType, MapData, PlacedTile, TileDef, Token, TokenArt } from '../types'
-import { footprint, terrainById, tokenByKind, worldJoints } from '../data'
+import { footprint, terrainById, tokenAngle, tokenByKind, worldJoints } from '../data'
 import { useTileLibrary } from '../tiles'
 
 export const CELL = 48
+/** Tokens and marker art are drawn at this fraction of their nominal size so they match the scale of markers printed on the tile art (the scroll on tile 1B is ~0.36 of the marker image) */
+export const TOKEN_SCALE = 0.36
+/** Plain placeholder tokens (letter glyphs) need to stay legible, so they shrink less */
+const GENERIC_SCALE = 0.62
 
 interface Props {
   map: MapData
@@ -166,12 +170,12 @@ function TokenMark({ t, selected, showLabels, art }: { t: Token; selected: boole
   const cy = t.y * CELL + CELL / 2
   const tip = [art?.name ?? def.name, t.label, t.note].filter(Boolean).join(' — ')
   if (art) {
-    const w = art.w * CELL
-    const h = art.h * CELL
+    const w = art.w * CELL * TOKEN_SCALE
+    const h = art.h * CELL * TOKEN_SCALE
     return (
       <g data-token={t.id} style={{ cursor: 'pointer' }}>
         <title>{tip}</title>
-        <g transform={`translate(${cx} ${cy}) rotate(${(t.rot ?? 0) * 90})`}>
+        <g transform={`translate(${cx} ${cy}) rotate(${tokenAngle(t)})`}>
           <image href={art.image} x={-w / 2} y={-h / 2} width={w} height={h} />
           {selected && <rect x={-w / 2 - 3} y={-h / 2 - 3} width={w + 6} height={h + 6} fill="none" stroke="#e0b04a" strokeWidth={3} strokeDasharray="6 4" />}
         </g>
@@ -196,7 +200,7 @@ function TokenMark({ t, selected, showLabels, art }: { t: Token; selected: boole
       </g>
     )
   }
-  const r = t.kind === 'boss' ? CELL * 0.42 : CELL * 0.34
+  const r = (t.kind === 'boss' ? CELL * 0.42 : CELL * 0.34) * GENERIC_SCALE
   const glyph = t.kind === 'event' && t.label ? t.label.slice(0, 3) : def.glyph
   return (
     <g data-token={t.id} style={{ cursor: 'pointer' }}>
@@ -209,7 +213,7 @@ function TokenMark({ t, selected, showLabels, art }: { t: Token; selected: boole
       ) : (
         <circle cx={cx} cy={cy} r={r} fill={def.color} stroke="#120d0a" strokeWidth={2} />
       )}
-      <text x={cx} y={cy + 5} textAnchor="middle" fontSize={glyph.length > 1 ? 12 : 15} fontWeight="700"
+      <text x={cx} y={cy + 5} textAnchor="middle" fontSize={(glyph.length > 1 ? 12 : 15) * Math.max(GENERIC_SCALE, 0.7)} fontWeight="700"
         fontFamily="Georgia, serif" fill={t.kind === 'event' ? '#1a1a1a' : '#fff'}>
         {glyph}
       </text>
